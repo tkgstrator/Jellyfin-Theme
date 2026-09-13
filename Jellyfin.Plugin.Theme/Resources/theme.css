@@ -1,0 +1,51 @@
+/*
+ * Scaffold only. The visual work is not done yet — this file establishes the
+ * structure that docs/design.md sections 2 and 3 call for, so that adding rules
+ * later is a matter of filling blocks in rather than deciding where they go.
+ *
+ * Rules:
+ *   - Colour, radius, shadow and spacing go through MUI's CSS variables (`--jf-*`).
+ *   - Structure goes through the Emby-derived class names (`.card`, `.detailRibbon`,
+ *     `.listItem`, ...) and the page ids.
+ *   - CSS Modules hashes (`.a000b79c5c06db187695`) and emotion runtime classes
+ *     (`.css-1x2y3z`) are off limits: they change on every web client build.
+ *   - Dark and light are separate `[data-theme]` attributes, not
+ *     `prefers-color-scheme`, so both need definitions.
+ */
+
+/* ------------------------------------------------------------------ *
+ * Shared tokens
+ * ------------------------------------------------------------------ */
+
+:root {
+	--theme-netflix-accent: #e50914;
+	--theme-applemusic-accent: #fa243c;
+}
+
+/* ------------------------------------------------------------------ *
+ * Video — Netflix-like
+ * ------------------------------------------------------------------ */
+
+#moviesPage,
+#tvshowsPage,
+#boxsetsPage,
+#itemDetailPage[data-item-type="Movie"],
+#itemDetailPage[data-item-type="Series"],
+#itemDetailPage[data-item-type="Season"],
+#itemDetailPage[data-item-type="Episode"],
+#itemDetailPage[data-item-type="BoxSet"] {
+	--jf-palette-primary-main: var(--theme-netflix-accent);
+}
+
+/* ------------------------------------------------------------------ *
+ * Music — Apple Music-like
+ * ------------------------------------------------------------------ */
+
+#musicPage,
+#playlistsPage,
+#itemDetailPage[data-item-type="MusicAlbum"],
+#itemDetailPage[data-item-type="MusicArtist"],
+#itemDetailPage[data-item-type="Audio"],
+#itemDetailPage[data-item-type="Playlist"] {
+	--jf-palette-primary-main: var(--theme-applemusic-accent);
+}

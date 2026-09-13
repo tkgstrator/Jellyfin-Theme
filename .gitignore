@@ -1,11 +1,85 @@
-node_modules/
+# ============================================================================
+# .NET
+# ============================================================================
+bin/
+obj/
+artifacts/
+[Dd]ebug/
+[Rr]elease/
+*.user
+*.suo
+*.userprefs
+*.pidb
+*.svclog
+*.scc
+project.lock.json
+project.fragment.lock.json
+.nuget/
+*.nupkg
+*.snupkg
+
+# Build output collected by scripts/package.sh
 dist/
+
+# GitHub Pages payload built by scripts/manifest.py
+site/
+
+# Test output
+TestResults/
+[Tt]est[Rr]esults/
+
+# ============================================================================
+# Node
+# ============================================================================
+node_modules/
+
+# ============================================================================
+# IDE
+# ============================================================================
+.vs/
+.idea/
+*.sln.docstates
+*.DotSettings.user
+
+# ============================================================================
+# Jellyfin dev server state (docker compose)
+# ============================================================================
+.jellyfin/
+
+# ============================================================================
+# macOS / Linux / Windows
+# ============================================================================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*~
+.directory
+
+# ============================================================================
+# Agents
+# ============================================================================
+.claude/
+.codex/
+
+# ============================================================================
+# Secrets / local env
+# ============================================================================
 .direnv/
 .env
 .env.*
 !.env.example
 
-# Test library contents. The directory itself is mounted into the Jellyfin
-# containers; only its layout is worth keeping under version control.
+# ============================================================================
+# Test library contents
+# ============================================================================
+# The directory itself is mounted into the Jellyfin containers; only its
+# layout is worth keeping under version control.
 media/*
 !media/.gitkeep
