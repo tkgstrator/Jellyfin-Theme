@@ -1,0 +1,58 @@
+name: jellyfin-theme
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ../:/home/vscode/app:cached
+      - jellyfin-config:/jellyfin/config
+      - jellyfin-legacy-config:/jellyfin/config-legacy
+    environment:
+      # Consumed by scripts that push the built CSS into Jellyfin's branding.
+      JELLYFIN_CONFIG_DIR: /jellyfin/config
+      JELLYFIN_LEGACY_CONFIG_DIR: /jellyfin/config-legacy
+      JELLYFIN_CONTAINER: theme-jellyfin
+      JELLYFIN_LEGACY_CONTAINER: theme-jellyfin-legacy
+    tty: true
+    stdin_open: true
+
+  # Primary target — Jellyfin 12.0 (React + MUI). http://localhost:8098
+  #
+  # Host ports are 8098/8099 rather than the usual 8096/8097 so this stack can
+  # run alongside another Jellyfin dev container without fighting over the bind.
+  jellyfin:
+    image: jellyfin/jellyfin:12.0
+    container_name: theme-jellyfin
+    user: "1000:1000"
+    ports:
+      - "8098:8096"
+    volumes:
+      - jellyfin-config:/config
+      - jellyfin-cache:/cache
+      - ../media:/media:cached
+    restart: unless-stopped
+
+  # Secondary target — Jellyfin 10.11 (Emby-derived UI, partially migrated).
+  # http://localhost:8099. Started on demand:
+  #   docker compose --profile legacy up -d jellyfin-legacy
+  jellyfin-legacy:
+    image: jellyfin/jellyfin:10.11.11
+    container_name: theme-jellyfin-legacy
+    user: "1000:1000"
+    profiles:
+      - legacy
+    ports:
+      - "8099:8096"
+    volumes:
+      - jellyfin-legacy-config:/config
+      - jellyfin-legacy-cache:/cache
+      - ../media:/media:cached
+    restart: unless-stopped
+
+volumes:
+  jellyfin-config:
+  jellyfin-cache:
+  jellyfin-legacy-config:
+  jellyfin-legacy-cache:
