@@ -1,0 +1,15 @@
+{
+	"category": "General",
+	"guid": "4a6cfff8-48b8-48eb-ba42-fc4d40a4b0bc",
+	"name": "Netflix / Apple Music Theme",
+	"overview": "Netflix-like video browsing and Apple Music-like music browsing for Jellyfin 12.0.",
+	"description": "Restyles the Jellyfin 12.0 web client: Netflix-like browsing for movies and shows, Apple Music-like browsing for music. The stylesheet is applied at request time, so nothing is written to the web root and a web client update cannot undo it.",
+	"owner": "tkgstrator",
+	"targetAbi": "__TARGET_ABI__",
+	"version": "__VERSION__",
+	"timestamp": "__TIMESTAMP__",
+	"changelog": "__CHANGELOG__",
+	"status": 0,
+	"autoUpdate": true,
+	"imagePath": ""
+}
