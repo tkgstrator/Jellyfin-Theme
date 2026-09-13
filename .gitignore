@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.direnv/
+.env
+.env.*
+!.env.example
+
+# Test library contents. The directory itself is mounted into the Jellyfin
+# containers; only its layout is worth keeping under version control.
+media/*
+!media/.gitkeep
