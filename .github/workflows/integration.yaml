@@ -1,0 +1,132 @@
+name: Integration
+
+# Feature branches and pull requests.
+# Also called by deployment.yaml so that every release goes through the exact
+# same checks — keep new checks in this file only.
+on:
+  push:
+    branches-ignore:
+      - master
+      - develop
+  pull_request:
+  workflow_call:
+    inputs:
+      skip-commitlint:
+        description: Skip commitlint. Set by deployment.yaml, since merge commits are not Conventional Commits.
+        type: boolean
+        default: false
+
+concurrency:
+  group: integration-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  commitlint:
+    name: Commit Lint
+    # The `inputs` context is empty for push and pull_request — not populated with
+    # the declared defaults — and an unset input compares equal to both `false` and
+    # `null`. So the flag has to be phrased so that "unset" and "not skipping" are
+    # the same value, or this job silently never runs outside workflow_call.
+    if: ${{ !inputs.skip-commitlint }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install commitlint
+        run: |
+          bun install conventional-changelog-conventionalcommits
+          bun install @commitlint/config-conventional@latest
+          bun install commitlint@latest
+      - name: Validate PR commits
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          # Not `head.sha~<commits>`: `~` walks first parents, so the commit count
+          # only lines up while the branch is linear. A develop -> master PR carries
+          # merge commits, and the count then overshoots into the base branch's
+          # history — or past the root commit, which fails with
+          # "fatal: Needed a single revision". The merge base is the actual fork point.
+          bunx commitlint \
+            --from "$(git merge-base "$BASE_SHA" "$HEAD_SHA")" \
+            --to "$HEAD_SHA" \
+            --verbose
+      - name: Validate last commit
+        if: github.event_name == 'push'
+        run: bunx commitlint --last --verbose
+
+  actionlint:
+    name: Workflow Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run actionlint
+        uses: docker://rhysd/actionlint:latest
+        with:
+          args: -color
+
+  lint:
+    name: Lint (dotnet format)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Restore
+        run: dotnet restore
+      - name: Verify formatting
+        run: dotnet format --no-restore --verify-no-changes --verbosity diagnostic
+
+  build:
+    name: Build (net10.0 / Jellyfin 12.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Restore
+        run: dotnet restore
+      # Analyzers run here: the project sets TreatWarningsAsErrors, so any
+      # StyleCop / .NET analyzer violation fails this job.
+      - name: Build
+        run: >-
+          dotnet build --no-restore --configuration Release
+          Jellyfin.Plugin.Theme/Jellyfin.Plugin.Theme.csproj
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
+          restore-keys: nuget-${{ runner.os }}-
+      - name: Restore
+        run: dotnet restore
+      - name: Test
+        run: dotnet test --no-restore --configuration Release
