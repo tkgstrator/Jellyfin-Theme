@@ -49,3 +49,7 @@ dotnet test
 ./scripts/deploy.sh      # 開発用 Jellyfin (:8098) に入れて再起動
 ./scripts/package.sh     # dist/ にリリース成果物
 ```
+
+## ライセンス
+
+[GPL-3.0](LICENSE)。Jellyfin 本体と同じライセンスです。
