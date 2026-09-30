@@ -83,3 +83,6 @@ $RECYCLE.BIN/
 # layout is worth keeping under version control.
 media/*
 !media/.gitkeep
+
+# Local Codex configuration, credentials, and session state.
+/.codex/
