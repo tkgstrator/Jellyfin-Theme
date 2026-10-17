@@ -11,6 +11,11 @@ on:
   pull_request:
   workflow_call:
     inputs:
+      ci-force-heavy:
+        description: Run full validation when called by another workflow.
+        type: boolean
+        default: true
+        required: false
       skip-commitlint:
         description: Skip commitlint. Set by deployment.yaml, since merge commits are not Conventional Commits.
         type: boolean
@@ -24,6 +29,16 @@ permissions:
   contents: read
 
 jobs:
+  ci-change-scope:
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci-change-scope.yaml
+    with:
+      doc-paths: '["AGENTS.md","CLAUDE.md","LICENSE","README.md","docs/design.md","docs/development/ci-change-scope.md","docs/research/jellyfin-12-web.md","docs/tokens.md"]'
+      doc-prefixes: '[]'
+      runner: '"ubuntu-latest"'
+      force-heavy: ${{ inputs['ci-force-heavy'] == true }}
+
   commitlint:
     name: Commit Lint
     # The `inputs` context is empty for push and pull_request — not populated with
@@ -92,41 +107,72 @@ jobs:
         run: dotnet format --no-restore --verify-no-changes --verbosity diagnostic
 
   build:
+    if: ${{ !cancelled() && (true) }}
+    needs: ["ci-change-scope"]
     name: Build (net10.0 / Jellyfin 12.0)
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true') && '"ubuntu-latest"' || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v5
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
       - uses: actions/setup-dotnet@v4
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         with:
           dotnet-version: 10.0.x
       - uses: actions/cache@v4
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
           restore-keys: nuget-${{ runner.os }}-
       - name: Restore
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         run: dotnet restore
       # Analyzers run here: the project sets TreatWarningsAsErrors, so any
       # StyleCop / .NET analyzer violation fails this job.
       - name: Build
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         run: >-
           dotnet build --no-restore --configuration Release
           Jellyfin.Plugin.Theme/Jellyfin.Plugin.Theme.csproj
 
+      - name: Docs-only exemption
+        if: ${{ needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true' }}
+        shell: bash
+        working-directory: .
+        env:
+          CI_CHANGE_REASON: ${{ needs['ci-change-scope'].outputs.reason }}
+        run: |
+          printf '%s\n' "$CI_CHANGE_REASON" >> "$GITHUB_STEP_SUMMARY"
   test:
+    if: ${{ !cancelled() && (true) }}
+    needs: ["ci-change-scope"]
     name: Test
-    runs-on: ubuntu-latest
+    runs-on: ${{ fromJSON((needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true') && '"ubuntu-latest"' || '"ubuntu-latest"') }}
     steps:
       - uses: actions/checkout@v5
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
       - uses: actions/setup-dotnet@v4
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         with:
           dotnet-version: 10.0.x
       - uses: actions/cache@v4
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         with:
           path: ~/.nuget/packages
           key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj', 'Directory.Build.props') }}
           restore-keys: nuget-${{ runner.os }}-
       - name: Restore
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         run: dotnet restore
       - name: Test
+        if: ${{ (needs['ci-change-scope'].result != 'success' || needs['ci-change-scope'].outputs.docs_only != 'true') }}
         run: dotnet test --no-restore --configuration Release
+
+      - name: Docs-only exemption
+        if: ${{ needs['ci-change-scope'].result == 'success' && needs['ci-change-scope'].outputs.docs_only == 'true' }}
+        shell: bash
+        working-directory: .
+        env:
+          CI_CHANGE_REASON: ${{ needs['ci-change-scope'].outputs.reason }}
+        run: |
+          printf '%s\n' "$CI_CHANGE_REASON" >> "$GITHUB_STEP_SUMMARY"
