@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Jellyfin.Plugin.Theme/Jellyfin.Plugin.Theme.csproj" />
+  <Project Path="tests/Jellyfin.Plugin.Theme.Tests/Jellyfin.Plugin.Theme.Tests.csproj" />
+</Solution>

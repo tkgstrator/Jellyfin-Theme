@@ -26,9 +26,8 @@ location.hash から itemId を取る
   → hashchange で貼り直す
 ```
 
-注入経路は [JavaScript Injector](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector)
-（12 系向けの manifest を配っている）。12.0 に Custom HTML / Custom JavaScript の欄は無いので、
-プラグイン以外の道は無い。
+注入経路は**自作プラグイン**（後述の「配布と注入」）。12.0 に Custom HTML /
+Custom JavaScript の欄は無いので、プラグイン以外の道は無い。
 
 ## 2. 出し分けはライブラリページの id で行う
 
@@ -89,7 +88,39 @@ MUI 6.5.0 の CSS 変数機構が有効（プレフィックス `jf`）なので
 16:9 にしたい場合は、ライブラリ側で Thumb / Backdrop を持たせたうえで CSS を当てる。
 テーマ単体では完結しない。
 
-## 6. 未決
+## 6. 配布と注入
+
+**自作プラグイン 1 本で配る。** [JavaScript Injector](https://github.com/n00bcodr/Jellyfin-JavaScript-Injector)
+に乗る手もあるが、他人のプラグインに依存すると壊れたときに自分で直せない。
+
+利用者の手順は「プラグインを入れる」だけ。CSS の貼り付けも Injector の設定も要らない。
+CSS と JS はプラグインの埋め込みリソースとして同梱し、プラグインは `index.html` への
+`<link>` / `<script>` 挿入だけを行う。
+
+ABI は **`net10.0` / Jellyfin 12.0 のみ**。10.11 は対応対象外なので TFM は 1 本。
+
+### index.html をディスク上で書き換えてはいけない
+
+web root は Docker だと書けないことがあり、書けても web クライアントの更新で消える。
+
+代わりに **`IStartupFilter` で ASP.NET Core のミドルウェアを挿し、リクエスト時に
+レスポンス本文を書き換える**。Injector も同じ方式に移行済みで、10.11 と 12.0 の両方で
+無改変に動く実績がある（`Services/ScriptInjectionStartupFilter.cs`）。
+
+実装で外せない点。
+
+| | 理由 |
+| --- | --- |
+| ミドルウェアは `next(app)` より前に登録して最外側で回す | 下の `Accept-Encoding` 除去が効くのは最外側のときだけ |
+| リクエストから `Accept-Encoding` / `Range` / `If-Range` を落とす | 圧縮済み本文や 206 partial は書き換えられない。206 が素通りすると長さが壊れる |
+| `GET` のみ。`HEAD` 等は素通し | 本文の無い応答をバッファすると `Content-Length` が 0 相当になる |
+| 対象は `/web`・`/web/`・`/web/index.html` を `EndsWith` で判定 | base-url 配下（`/jellyfin/web/`）でも当たる |
+| `200` かつ `text/html` 以外は素通し | 304・リダイレクト・静的ファイルを壊さない |
+| 書き換え後に `ETag` / `Last-Modified` / `Accept-Ranges` を消し `ContentLength` を再設定 | 本文が変わった時点で元の検証子は無効 |
+| 例外は握って元の HTML を返す | index.html を落とすと UI が全滅する |
+| マーカーコメントで冪等にする | 二重注入と、旧方式で既に書き込まれた index.html を避ける |
+
+## 7. 未決
 
 - **ヒーローバナーを諦めるか、方針 1 を緩めるか。** Netflix らしさの核なので、
   諦めると「黒くて赤い Jellyfin」止まりになる可能性がある。まず諦めた状態で作り、
@@ -107,6 +138,6 @@ MUI 6.5.0 の CSS 変数機構が有効（プレフィックス `jf`）なので
 @import url("http://localhost:4173/theme.css");
 ```
 
-本番へは中身を貼り付けるか、GitHub Pages 等に置いた URL を `@import` する。
-クライアント単位の Custom CSS 欄（Settings → Display）はサーバー側の後に適用されるので、
-試すときはそちらを使うと他の利用者に影響しない。
+これは開発中の確認用。**配布はプラグイン経由**（方針 6）で、利用者に CSS を貼らせる
+運用はしない。クライアント単位の Custom CSS 欄（Settings → Display）はサーバー側の後に
+適用されるので、共用機で試すときはそちらを使うと他の利用者に影響しない。

@@ -1,0 +1,31 @@
+<Project>
+  <PropertyGroup>
+    <!-- Overwritten by CI at release time (see scripts/package.sh). -->
+    <Version>0.1.0.0</Version>
+    <AssemblyVersion>0.1.0.0</AssemblyVersion>
+    <FileVersion>0.1.0.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisMode>AllEnabledByDefault</AnalysisMode>
+    <CodeAnalysisRuleSet>$(MSBuildThisFileDirectory)jellyfin.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <!--
+    Single source of truth for the Jellyfin ABI this plugin targets.
+
+      net10.0 -> Jellyfin 12.0.x
+
+    Only 12.0 is supported: the 10.11 web client is a half-migrated mix of
+    Emby-derived and React/MUI markup, so every selector would need a second
+    form. See docs/design.md.
+  -->
+  <PropertyGroup>
+    <JellyfinVersion>12.0.0</JellyfinVersion>
+    <JellyfinAbi>12.0.0.0</JellyfinAbi>
+  </PropertyGroup>
+</Project>
